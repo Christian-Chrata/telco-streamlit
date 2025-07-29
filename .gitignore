@@ -1,0 +1,5 @@
+.DS_Store
+/.ipynb_checkpoints
+/.virtual_documents
+anaconda_projects/db/project_filebrowser.db
+/Docs/.ipynb_checkpoints
