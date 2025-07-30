@@ -8,7 +8,7 @@ st.title("Survival Rate Predictor (Telco Churn)")
 st.text("This web can be used to predict customer survival rate (non-churn)")
 
 # Load model
-with open(r"/model.sav", "rb") as f:
+with open(r"model.sav", "rb") as f:
     model = pickle.load(f)
 
 # Load struktur data (tanpa label target)
