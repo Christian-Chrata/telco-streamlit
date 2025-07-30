@@ -1,66 +1,65 @@
+
 import streamlit as st
-import numpy as np
 import pandas as pd
 import pickle
 
-# Judul Utama
-st.title("Survival Rate Predictor (Telco Churn)")
-st.text("This web can be used to predict customer survival rate (non-churn)")
-
 # Load model
-with open(r"model.sav", "rb") as f:
+with open("model.pkl", "rb") as f:
     model = pickle.load(f)
 
-# Load struktur data (tanpa label target)
+st.title("Telco Customer Churn Prediction App")
+
+st.sidebar.header("Choose Prediction Mode")
+mode = st.sidebar.radio("Select input mode", ["Single Customer", "Batch Prediction (CSV)"])
+
+# Load a sample structure for reference columns
 sample_data = pd.read_csv("df_clean.csv").drop(columns=["customerID", "Churn"])
 required_columns = sample_data.columns.tolist()
 
-# Sidebar untuk input user
-st.sidebar.header("Please input your features")
+def predict(df_input):
+    predictions = model.predict(df_input)
+    probabilities = model.predict_proba(df_input)[:, 1]
+    result = df_input.copy()
+    result["Churn_Predicted"] = predictions
+    result["Churn_Probability"] = probabilities
+    return result
 
-def create_user_input():
-    user_data = {}
+if mode == "Single Customer":
+    st.subheader("Enter Customer Details")
 
+    input_data = {}
     for col in required_columns:
         if sample_data[col].dtype == "object":
             options = sample_data[col].dropna().unique().tolist()
-            user_data[col] = st.sidebar.selectbox(f"{col}:", options)
+            input_data[col] = st.selectbox(f"{col}:", options)
         else:
             min_val = float(sample_data[col].min())
             max_val = float(sample_data[col].max())
-            mean_val = float(sample_data[col].mean())
-            user_data[col] = st.sidebar.slider(f"{col}:", min_val, max_val, mean_val)
+            input_data[col] = st.slider(f"{col}:", min_val, max_val, float(sample_data[col].mean()))
 
-    user_data_df = pd.DataFrame([user_data])
-    return user_data_df
+    input_df = pd.DataFrame([input_data])
 
-# Get input dari user
-data_customer = create_user_input()
-
-# Split tampilan horizontal
-col1, col2 = st.columns(2)
-
-# Tampilkan fitur yang dimasukkan
-with col1:
-    st.subheader("Customer's Input Features")
-    st.write(data_customer.transpose())
-
-# Prediksi menggunakan model
-def predict(df_input):
-    pred_class = model.predict(df_input)[0]
-    pred_proba = model.predict_proba(df_input)[0][1]
-    return pred_class, pred_proba
-
-# Tampilkan hasil prediksi
-with col2:
-    st.subheader("Prediction Result")
-
-    if st.button("Predict"):
-        kelas, probability = predict(data_customer)
-
-        if kelas == 1:
-            st.success("✅ Class 1: This customer is **likely to stay** (survive).")
+    if st.button("Predict Churn"):
+        result = predict(input_df)
+        st.write("### 🔍 Prediction Result:")
+        st.write(result[["Churn_Predicted", "Churn_Probability"]])
+        if result["Churn_Predicted"].iloc[0] == 1:
+            st.error("⚠️ This customer is likely to churn!")
         else:
-            st.error("⚠️ Class 0: This customer is **likely to churn** (not survive).")
+            st.success("✅ This customer is likely to stay.")
 
-        st.metric("Probability of Survival", f"{probability:.2f}")
+else:
+    st.subheader("Upload CSV File for Bulk Prediction")
+    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+
+    if uploaded_file is not None:
+        df_uploaded = pd.read_csv(uploaded_file)
+        missing_cols = set(required_columns) - set(df_uploaded.columns)
+        if missing_cols:
+            st.error(f"The uploaded file is missing required columns: {missing_cols}")
+        else:
+            results = predict(df_uploaded)
+            st.write("### Prediction Results")
+            st.dataframe(results[["Churn_Predicted", "Churn_Probability"]])
+            csv = results.to_csv(index=False).encode("utf-8")
+            st.download_button("Download Results CSV", data=csv, file_name="churn_predictions.csv", mime="text/csv")
