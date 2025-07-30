@@ -4,11 +4,11 @@ import pandas as pd
 import pickle
 
 # Judul Utama
-st.title('Survival Rate Predictor (Telco Churn)')
-st.text('This web can be used to predict customer survival rate (non-churn)')
+st.title("Survival Rate Predictor (Telco Churn)")
+st.text("This web can be used to predict customer survival rate (non-churn)")
 
 # Load model
-with open(r'model.sav', 'rb') as f:
+with open("model.sav", "rb") as f:
     model = pickle.load(f)
 
 # Load struktur data (tanpa label target)
@@ -22,7 +22,7 @@ def create_user_input():
     user_data = {}
 
     for col in required_columns:
-        if sample_data[col].dtype == 'object':
+        if sample_data[col].dtype == "object":
             options = sample_data[col].dropna().unique().tolist()
             user_data[col] = st.sidebar.selectbox(f"{col}:", options)
         else:
